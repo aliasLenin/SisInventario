@@ -1,0 +1,1794 @@
+-- phpMyAdmin SQL Dump
+-- version 4.8.3
+-- https://www.phpmyadmin.net/
+--
+-- Servidor: 127.0.0.1
+-- Tiempo de generación: 06-07-2019 a las 12:43:22
+-- Versión del servidor: 10.1.35-MariaDB
+-- Versión de PHP: 7.2.9
+
+SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
+SET AUTOCOMMIT = 0;
+START TRANSACTION;
+SET time_zone = "+00:00";
+
+
+/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
+/*!40101 SET NAMES utf8mb4 */;
+
+--
+-- Base de datos: `db_inventario2`
+--
+
+DELIMITER $$
+--
+-- Funciones
+--
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscaridcaja` (`diminutivo_caja` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE aux_id INT DEFAULT 0;
+    
+    SET aux_id = (SELECT id from `cajas` WHERE cajas.diminutivo_caja = diminutivo_caja  );
+    
+    RETURN aux_id;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscariddepartamento` (`nombre_departamento` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE num INT DEFAULT 0;
+    
+    SET num = (SELECT id from `departamentos` WHERE departamentos.nombre_departamento = nombre_departamento );
+    
+    RETURN num;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscariddocumental` (`nombre_documental` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE aux_id INT DEFAULT 0;
+    
+    SET aux_id = (SELECT id from `documentales` WHERE documentales.nombre_documental = nombre_documental );
+    
+    RETURN aux_id;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscaridpersona` (`nombre_persona` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE aux_id INT DEFAULT 0;
+    
+    SET aux_id = (SELECT id from `personas` WHERE personas.nombre = nombre_persona );
+    
+    RETURN aux_id;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscarMax_nuevo_num_expediente` (`iddocumental` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE max_numero INT DEFAULT 0;
+    DECLARE num INT DEFAULT 1;
+	DECLARE aux INT DEFAULT 0;
+	
+    /* si retorna cero que me devuelva 1 por ser la primera vez */
+    SET max_numero = (SELECT MAX(nuevo_num_expediente) from `archivos` WHERE archivos.iddocumental = iddocumental  );
+    
+		set aux = (select if(max_numero is NULL, num , max_numero+1)); /* si es igual a cero retorna 1 , si no le suma 1 */
+		
+		RETURN aux;
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscarUbicacion_caja` (`idcaja` INT) RETURNS VARCHAR(50) CHARSET utf8 BEGIN
+
+    DECLARE aux_ubicacion varchar(50);
+    
+    SET aux_ubicacion = (SELECT ubicacion from `cajas` WHERE cajas.id = idcaja);
+    
+    RETURN aux_ubicacion;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscar_nombre_persona` (`idpersona` INT) RETURNS VARCHAR(100) CHARSET utf8 BEGIN
+
+    DECLARE aux_nombre_persona VARCHAR(100);
+    
+    SET aux_nombre_persona = (SELECT nombre from `personas` WHERE personas.id = idpersona );
+    
+    RETURN aux_nombre_persona;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `buscar_Usuario` (`idusuario` INT) RETURNS VARCHAR(100) CHARSET utf8 BEGIN
+
+    DECLARE aux_usuario VARCHAR(100);
+    
+    SET aux_usuario = (SELECT usuario from `users` WHERE users.id = idusuario );
+    
+    RETURN aux_usuario;
+    
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `validar_estado` (`aux_estado` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE estado INT DEFAULT 0;
+   
+	set estado = (select if(aux_estado = 'DISPONIBLE' , 1 , 2));
+		
+	RETURN estado;
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `validar_existencia_archivo` (`viejo_num_expediente` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE existe INT DEFAULT 0;
+    DECLARE respuesta varchar(50);
+    
+	 /* si retorna cero que me devuelva 1 por ser la primera vez */
+    SET respuesta = (SELECT viejo_num_expediente from `archivos` WHERE archivos.viejo_num_expediente = viejo_num_expediente );
+    
+		set existe = (select if( respuesta is NULL, 0 , 1 )); /* si es igual a cero retorna 1 , si no le suma 1 */
+		
+	RETURN existe;
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` FUNCTION `validar_valor` (`aux_valor` VARCHAR(50)) RETURNS INT(11) BEGIN
+
+    DECLARE valor INT DEFAULT 0;
+   
+	set valor = (select if(aux_valor = 'LEGAL' , 1 , 2));
+		
+	RETURN valor;
+
+END$$
+
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `archivos`
+--
+
+CREATE TABLE `archivos` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `iddepartamento` int(10) UNSIGNED NOT NULL,
+  `iddocumental` int(10) UNSIGNED NOT NULL,
+  `idpersona` int(10) UNSIGNED NOT NULL,
+  `idcaja` int(10) UNSIGNED NOT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `nuevo_num_expediente` int(11) NOT NULL,
+  `viejo_num_expediente` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `contenido` varchar(256) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fecha_extrema` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `anno` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `ubicacion` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `descripcion` varchar(256) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `valor` int(11) DEFAULT NULL,
+  `vigencia` int(11) DEFAULT NULL,
+  `estado` int(11) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `fecha_expiracion` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `archivos`
+--
+
+INSERT INTO `archivos` (`id`, `iddepartamento`, `iddocumental`, `idpersona`, `idcaja`, `idusuario`, `nuevo_num_expediente`, `viejo_num_expediente`, `contenido`, `fecha_extrema`, `anno`, `ubicacion`, `descripcion`, `valor`, `vigencia`, `estado`, `created_at`, `updated_at`, `fecha_expiracion`) VALUES
+(1, 1, 1, 1, 1, 1, 1, 'ACP-7-1', 'LEYES DECRETOS JURISPRUDENCIA', '2002', '2001', 'ESTANTE 1', 'CUALQUIER COSA AL RESPECTO1', 1, 1, 1, '2019-06-07 19:02:33', '2019-06-07 19:10:07', '2020-06-07 01:02:33'),
+(2, 2, 2, 2, 2, 1, 1, 'ACT-20-1', 'RECURSO VILLAS DEL COCO VP S A', '2003', '2004', 'ESTANTE 2', 'CUALQUIER COSA AL RESPECTO2', 2, 2, 2, '2019-06-07 19:02:33', NULL, '2021-06-07 01:02:33'),
+(3, 2, 2, 2, 3, 1, 2, 'ACT-20-2', 'Z M T VILLAS DEL COCO V P ', '2005', '2006', 'ESTANTE 2', 'CUALQUIER COSA AL RESPECTO3', 1, 3, 1, '2019-06-07 19:02:33', '2019-06-07 19:10:11', '2022-06-07 01:02:33'),
+(4, 3, 3, 3, 4, 1, 1, 'ACD-17-1', 'MARIO MARTINEZ MARTINEZ DONACION DE FRANJA DE TERRENO ', '2007', '2008', 'ESTANTE 3', 'CUALQUIER COSA AL RESPECTO4', 1, 4, 1, '2019-06-07 19:02:33', NULL, '2023-06-07 01:02:33'),
+(5, 3, 3, 3, 5, 1, 2, 'ACD-17-2', 'DEPARTAMENTO DE PROVEEDURIA ', '2009', '2010', 'ESTANTE 3', 'CUALQUIER COSA AL RESPECTO5', 2, 5, 1, '2019-06-07 19:02:33', NULL, '2024-06-07 01:02:33'),
+(6, 3, 3, 3, 6, 1, 3, 'ACD-17-3', 'RECURSO DE APELACION CECILIA RODRIGUEZ PICADO ', '2011', '2012', 'ESTANTE 3', 'CUALQUIER COSA AL RESPECTO6', 1, 14, 3, '2019-06-07 19:02:33', '2019-06-07 19:03:01', '2033-06-07 01:02:33'),
+(7, 4, 4, 4, 7, 1, 1, 'ACM-2-1', 'ALCALDIA 2009 2010 2011', '2013', '2014', 'ESTANTE 4', 'CUALQUIER COSA AL RESPECTO7', 2, 15, 1, '2019-06-07 19:02:33', '2019-06-07 19:02:51', '2034-06-07 01:02:33'),
+(8, 4, 4, 4, 8, 1, 2, 'ACM-2-2', 'DENNIS CALDERON VALVERDE OFICIOS 2012 ', '2015', '2016', 'ESTANTE 4', 'CUALQUIER COSA AL RESPECTO8', 2, 16, 1, '2019-06-07 19:02:33', NULL, '2035-06-07 01:02:33'),
+(9, 4, 4, 4, 9, 1, 3, 'ACM-2-3', 'CRITERIOS MARTHA E THOMPSON JIMENEZ', '2017', '2018', 'ESTANTE 4', 'CUALQUIER COSA AL RESPECTO9', 2, 17, 3, '2019-06-07 19:02:33', '2019-06-07 19:02:57', '2036-06-07 01:02:33'),
+(10, 4, 4, 4, 10, 1, 4, 'ACM-2-4', 'PROYECTO DE REGLAMENTO PARA LA GESTION CONTROL Y APLICACIÓN DE LA TECNOLOGIA DE IMFORMACION', '2019', '2020', 'ESTANTE 4', 'CUALQUIER COSA AL RESPECTO10', 1, 18, 1, '2019-06-07 19:02:33', '2019-06-07 19:10:14', '2037-06-07 01:02:33'),
+(11, 2, 12, 1, 3, 1, 1, 'AVL-173-1', 'PRUEBA', '2018', '2020', 'ESTANTE 2', 'PRUEBA', 2, 5, 2, '2019-06-07 19:05:42', '2019-06-07 19:05:42', '2024-06-07 01:05:42');
+
+--
+-- Disparadores `archivos`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizar_Archivo_bitacora` AFTER UPDATE ON `archivos` FOR EACH ROW BEGIN
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+      
+				 IF aux_estado = 1 THEN 
+					SET estado ='DISPONIBLE';
+      
+						insert 
+							into bitacoras(
+								
+								usuario,
+								accion,								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('  EXPEDIENTE: '), ' '),' ', IFNULL(TRIM(new.viejo_num_expediente),' '),' ',
+                                 IFNULL(TRIM(' VIGENCIA: '),' '),' ', IFNULL(TRIM(new.vigencia),' '),' ANNOS',' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'ARCHIVOS'
+						);
+	
+					
+				ELSEIF aux_estado = 2 THEN
+					SET estado ='PRESTADO';
+      
+						insert 
+							into bitacoras(
+								
+								usuario,
+								accion,								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('  EXPEDIENTE: '), ' '),' ', IFNULL(TRIM(new.viejo_num_expediente),' '),' ',
+                                 IFNULL(TRIM(' VIGENCIA: '),' '),' ', IFNULL(TRIM(new.vigencia),' '),' ANNOS',' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'ARCHIVOS'
+						);
+      
+			    ELSE
+					SET estado ='ELIMINADO';
+      
+						insert 
+							into bitacoras(
+								
+								usuario,
+								accion,								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ELIMINO '), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('  EXPEDIENTE: '), ' '),' ', IFNULL(TRIM(new.viejo_num_expediente),' '),' ',
+                                 IFNULL(TRIM(' VIGENCIA: '),' '),' ', IFNULL(TRIM(new.vigencia),' '),' ANNOS',' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'ARCHIVOS'
+						);
+      
+      
+				END IF;
+           
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_Archivo_bitacora` AFTER INSERT ON `archivos` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+      
+				 IF aux_estado = 1 THEN 
+					SET estado ='DISPONIBLE';
+      
+						insert 
+						into bitacoras(
+							
+							usuario,
+							accion,					
+							descripcion,
+							modulo
+						)values(
+							
+							usuario,
+							CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+							CONCAT(IFNULL(TRIM(' EXPEDIENTE: '), ' '),' ', IFNULL(TRIM(new.viejo_num_expediente),' '),' ',
+							IFNULL(TRIM(' VIGENCIA: '),' '),' ', IFNULL(TRIM(new.vigencia),' '),' ANNOS',' ESTADO: ',  IFNULL(TRIM(estado), '')),
+							'ARCHIVOS'
+					);
+      
+      
+				ELSE
+				SET estado ='PRESTADO';
+      
+                        insert 
+						into bitacoras(
+							
+							usuario,
+							accion,					
+							descripcion,
+							modulo
+						)values(
+							
+							usuario,
+							CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+							CONCAT(IFNULL(TRIM(' EXPEDIENTE: '), ' '),' ', IFNULL(TRIM(new.viejo_num_expediente),' '),' ',
+							IFNULL(TRIM(' VIGENCIA: '),' '),' ', IFNULL(TRIM(new.vigencia),' '),' ANNOS',' ESTADO: ',  IFNULL(TRIM(estado), '')),
+							'ARCHIVOS'
+					);
+	
+				END IF;
+             
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `bitacoras`
+--
+
+CREATE TABLE `bitacoras` (
+  `idbitacora` int(10) UNSIGNED NOT NULL,
+  `usuario` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `accion` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descripcion` varchar(300) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `modulo` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `bitacoras`
+--
+
+INSERT INTO `bitacoras` (`idbitacora`, `usuario`, `accion`, `descripcion`, `modulo`) VALUES
+(1, 'admin', 'INSERTO A LAS: 2019-06-07 11:51:48', 'LA CAJA: CONS-MU-1    UBICACACION: ESTANTE 1 ESTADO: ACTIVO', 'CAJAS'),
+(2, 'admin', 'INSERTO A LAS: 2019-06-07 11:52:01', 'LA CAJA: SECRE-CONS-1    UBICACACION: ESTANTE 2 ESTADO: ACTIVO', 'CAJAS'),
+(3, 'admin', 'INSERTO A LAS: 2019-06-07 11:52:11', 'LA CAJA: SECRE-CONS-2    UBICACACION: ESTANTE 2 ESTADO: ACTIVO', 'CAJAS'),
+(4, 'admin', 'INSERTO A LAS: 2019-06-07 11:52:23', 'LA CAJA: AUDI-INTER-1    UBICACACION: ESTANTE 3 ESTADO: ACTIVO', 'CAJAS'),
+(5, 'admin', 'INSERTO A LAS: 2019-06-07 11:52:31', 'LA CAJA: AUDI-INTER-2    UBICACACION: ESTANTE 3 ESTADO: ACTIVO', 'CAJAS'),
+(6, 'admin', 'INSERTO A LAS: 2019-06-07 11:52:47', 'LA CAJA: AUDI-INTER-3    UBICACACION: ESTANTE 3 ESTADO: ACTIVO', 'CAJAS'),
+(7, 'admin', 'INSERTO A LAS: 2019-06-07 11:53:12', 'LA CAJA: JUNT-V-1    UBICACACION: ESTANTE 4 ESTADO: ACTIVO', 'CAJAS'),
+(8, 'admin', 'INSERTO A LAS: 2019-06-07 11:53:12', 'LA CAJA: JUNT-V-1    UBICACACION: ESTANTE 4 ESTADO: ACTIVO', 'CAJAS'),
+(9, 'admin', 'INSERTO A LAS: 2019-06-07 11:53:57', 'LA CAJA: CONS-MU-1    UBICACACION: ESTANTE 1 ESTADO: ACTIVO', 'CAJAS'),
+(10, 'admin', 'INSERTO A LAS: 2019-06-07 11:54:09', 'LA CAJA: SECRE-CONS-1    UBICACACION: ESTANTE 2 ESTADO: ACTIVO', 'CAJAS'),
+(11, 'admin', 'INSERTO A LAS: 2019-06-07 11:54:18', 'LA CAJA: SECRE-CONS-2    UBICACACION: ESTANTE 2 ESTADO: ACTIVO', 'CAJAS'),
+(12, 'admin', 'INSERTO A LAS: 2019-06-07 11:54:33', 'LA CAJA: AUDI-INTER-1    UBICACACION: ESTANTE 3 ESTADO: ACTIVO', 'CAJAS'),
+(13, 'admin', 'INSERTO A LAS: 2019-06-07 11:54:45', 'LA CAJA: AUDI-INTER-2    UBICACACION: ESTANTE 3 ESTADO: ACTIVO', 'CAJAS'),
+(14, 'admin', 'INSERTO A LAS: 2019-06-07 11:54:59', 'LA CAJA: AUDI-INTER-3    UBICACACION: ESTANTE 3 ESTADO: ACTIVO', 'CAJAS'),
+(15, 'admin', 'INSERTO A LAS: 2019-06-07 11:55:37', 'LA CAJA: JUNT-V-1    UBICACACION: ESTANTE 4 ESTADO: ACTIVO', 'CAJAS'),
+(16, 'admin', 'INSERTO A LAS: 2019-06-07 11:55:45', 'LA CAJA: JUNT-V-2    UBICACACION: ESTANTE 4 ESTADO: ACTIVO', 'CAJAS'),
+(17, 'admin', 'INSERTO A LAS: 2019-06-07 11:55:55', 'LA CAJA: JUNT-V-3    UBICACACION: ESTANTE 4 ESTADO: ACTIVO', 'CAJAS'),
+(18, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:07', 'LA CAJA: JUNT-V-4    UBICACACION: ESTANTE 4 ESTADO: ACTIVO', 'CAJAS'),
+(19, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACP-7-1 VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(20, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACT-20-1 VIGENCIA: 2 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(21, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACT-20-2 VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(22, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACD-17-1 VIGENCIA: 4 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(23, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACD-17-2 VIGENCIA: 5 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(24, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACD-17-3 VIGENCIA: 14 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(25, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACM-2-1 VIGENCIA: 15 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(26, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACM-2-2 VIGENCIA: 16 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(27, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACM-2-3 VIGENCIA: 17 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(28, 'admin', 'INSERTO A LAS: 2019-06-07 11:56:29', 'EXPEDIENTE: ACM-2-4 VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(29, 'admin', 'ACTUALIZO A LAS: 2019-06-07 11:56:35', 'EXPEDIENTE: ACM-2-3 VIGENCIA: 17 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(30, 'admin', 'ACTUALIZO A LAS: 2019-06-07 11:56:38', 'EXPEDIENTE: ACM-2-1 VIGENCIA: 15 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(31, 'admin', 'ACTUALIZO A LAS: 2019-06-07 11:56:40', 'EXPEDIENTE: ACT-20-1 VIGENCIA: 2 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(32, 'admin', 'INSERTO A LAS: 2019-06-07 11:57:07', 'LA BOLETA: 1    RESPONSABLE DOCUMENTACION: JOSE LENIN ULLOA ANCHIA ESTADO: PENDIENTE', 'BOLETAS'),
+(33, 'admin', 'ACTUALIZO A LAS: 2019-06-07 11:57:07', 'EXPEDIENTE: ACP-7-1 VIGENCIA: 1 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(34, 'admin', 'ACTUALIZO A LAS: 2019-06-07 11:57:07', 'EXPEDIENTE: ACT-20-1 VIGENCIA: 2 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(35, 'admin', 'INSERTO A LAS: 2019-06-07 11:58:44', 'El DOCUMENTO: EXPEDIENTE CODIGO: EXP ESTADO: ACTIVADO', 'DOCUMENTALES'),
+(36, 'admin', 'INSERTO A LAS: 2019-06-07 11:59:16', 'DEPARTAMENTO: DIRECCION JURIDICA CODIGO DIMINUTIVO: DIRE-JURI-29 ESTADO: ACTIVADO', 'DEPARTAMENTOS'),
+(37, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:00:21', 'DEPARTAMENTO: DIRECCION JURIDICA CODIGO DIMINUTIVO: DIRE-JURI ESTADO: ACTIVADO', 'DEPARTAMENTOS'),
+(38, 'admin', 'INSERTO A LAS: 2019-06-07 12:00:40', 'LA CAJA: DIRE-JURI-1    UBICACACION: ESTANTE 5 ESTADO: ACTIVO', 'CAJAS'),
+(39, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:01:14', 'LA CAJA: DIRE-JURI-29    UBICACION: ESTANTE 5 ESTADO: ACTIVO', 'CAJAS'),
+(40, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1220 VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(41, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 545-546-547-2000 VIGENCIA: 2 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(42, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1221 VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(43, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-000265-0412-PE VIGENCIA: 4 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(44, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1222 VIGENCIA: 5 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(45, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 2008LN-000002-01 VIGENCIA: 6 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(46, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: MC-VM-0970-12 VIGENCIA: 7 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(47, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-000211-0387-AG-5 VIGENCIA: 8 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(48, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 3977-M-93-NO 0185-95 VIGENCIA: 9 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(49, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1223 VIGENCIA: 10 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(50, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1224 VIGENCIA: 11 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(51, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-000952-1027-CA-6 VIGENCIA: 12 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(52, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 20596-24-2006-QJ-CDA VIGENCIA: 13 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(53, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-005409 1027-CA-6 VIGENCIA: 14 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(54, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1225 VIGENCIA: 15 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(55, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1226 VIGENCIA: 16 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(56, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-001630-1027-CA VIGENCIA: 17 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(57, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 10-000057-0388-CI-1 VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(58, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 97-300090-386-LA VIGENCIA: 1 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(59, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1227 VIGENCIA: 2 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(60, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-001460-1027-CA VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(61, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-006601-1027-CA VIGENCIA: 4 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(62, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 10-003113-1027-CA VIGENCIA: 5 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(63, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-5826-1027-CA VIGENCIA: 6 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(64, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-006831-1027-CA VIGENCIA: 7 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(65, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-004892-1027-CA VIGENCIA: 8 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(66, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1228 VIGENCIA: 9 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(67, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1229 VIGENCIA: 10 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(68, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 97-100079-0401-CI VIGENCIA: 11 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(69, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1230 VIGENCIA: 12 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(70, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1231 VIGENCIA: 13 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(71, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1232 VIGENCIA: 14 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(72, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1233 VIGENCIA: 15 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(73, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1234 VIGENCIA: 16 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(74, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1235 VIGENCIA: 17 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(75, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 06-001099-0163-CA VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(76, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1236 VIGENCIA: 1 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(77, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1237 VIGENCIA: 2 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(78, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1238 VIGENCIA: 3 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(79, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1239 VIGENCIA: 4 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(80, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1240 VIGENCIA: 5 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(81, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1241 VIGENCIA: 6 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(82, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 04-001525-0412-PE VIGENCIA: 7 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(83, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-000503-0412-PE VIGENCIA: 8 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(84, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-000364-0764-TR VIGENCIA: 9 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(85, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-001176-0412-PE VIGENCIA: 10 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(86, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 07-001486-412-PE VIGENCIA: 11 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(87, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 07-1515-163-CA VIGENCIA: 12 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(88, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-013336-0007-CO VIGENCIA: 13 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(89, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-006182-1027-CA-6 VIGENCIA: 14 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(90, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-001389-1027-CA-3 VIGENCIA: 15 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(91, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 08-100058-401-CI VIGENCIA: 16 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(92, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1242 VIGENCIA: 17 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(93, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 14-003186-1027-CA-7 VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(94, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-007024-1027-CA-2 VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(95, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-005688-1027-CA VIGENCIA: 2 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(96, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-00337-1027-CA VIGENCIA: 3 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(97, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-000293-1027-CA VIGENCIA: 5 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(98, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 02-000299-1027-CA VIGENCIA: 6 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(99, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-004648-1027-CA-3 VIGENCIA: 7 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(100, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-007157-1027-CA VIGENCIA: 9 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(101, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-000959-1027-CA-8 VIGENCIA: 10 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(102, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-003309-1027-CA-8 VIGENCIA: 11 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(103, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 08-000411-1027-CA VIGENCIA: 12 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(104, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 95-100241-388-CI VIGENCIA: 13 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(105, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 14-000938-007-CO VIGENCIA: 14 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(106, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 14-003209-0007-CO VIGENCIA: 15 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(107, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-012790-0007-CO VIGENCIA: 16 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(108, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-012670-0007-CO VIGENCIA: 17 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(109, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-005148-0007-CO VIGENCIA: 18 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(110, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-006838-0007-CO VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(111, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-002422-1027-CA-5 VIGENCIA: 2 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(112, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-002422-1027-CA VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(113, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 07-002450-0166-LA VIGENCIA: 4 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(114, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-003622-1027-CA VIGENCIA: 5 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(115, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 15-000092-0775-LA-2 VIGENCIA: 6 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(116, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-2422-1027-CA VIGENCIA: 8 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(117, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1243 VIGENCIA: 9 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(118, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 01-300058-0388-LA VIGENCIA: 10 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(119, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 07-000070-0775-LA-6 VIGENCIA: 11 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(120, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 09-000052-0775-LA VIGENCIA: 12 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(121, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-300035-0401-LA VIGENCIA: 13 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(122, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-300088-0401-LA VIGENCIA: 14 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(123, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-000254-0775-LA VIGENCIA: 16 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(124, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 15-000092-0775-LA VIGENCIA: 17 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(125, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 12-000029-0775-LA-1 VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(126, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 14-000147-0775-LA-13 VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(127, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-003386-1027-CA-5 VIGENCIA: 2 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(128, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 09-000032-0775-LA VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(129, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 11-000073-1052-LA VIGENCIA: 4 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(130, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: 13-300109-0401-LA VIGENCIA: 5 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(131, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1244 VIGENCIA: 6 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(132, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1245 VIGENCIA: 7 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(133, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1246 VIGENCIA: 8 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(134, 'admin', 'INSERTO A LAS: 2019-06-07 12:02:02', 'EXPEDIENTE: EXP-1247 VIGENCIA: 9 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(135, 'admin', 'INSERTO A LAS: 2019-06-07 12:03:07', 'LA BOLETA: 2    RESPONSABLE DOCUMENTACION: EDDIER LOPEZ LOPEZ ESTADO: PENDIENTE', 'BOLETAS'),
+(136, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:03:07', 'EXPEDIENTE: EXP-1224 VIGENCIA: 11 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(137, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:03:07', 'EXPEDIENTE: EXP-1225 VIGENCIA: 15 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(138, 'admin', 'INSERTO A LAS: 2019-06-07 12:04:41', 'LA BOLETA: 3    RESPONSABLE DOCUMENTACION: JASON BARRANTES APU ESTADO: PENDIENTE', 'BOLETAS'),
+(139, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:04:41', 'EXPEDIENTE: EXP-1221 VIGENCIA: 3 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(140, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:04:41', 'EXPEDIENTE: EXP-1222 VIGENCIA: 5 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(141, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:19:46', 'USUARIO: admin ESTADO: ACTIVO', 'Users'),
+(142, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:25:59', 'USUARIO: admin ESTADO: ACTIVO', 'Users'),
+(143, 'admin', 'INSERTO A LAS: 2019-06-07 12:51:36', 'PERSONA: jean carlos IDENTIFICACION: 503880980 ESTADO: ACTIVO', 'PERSONAS'),
+(144, 'admin', 'ACTUALIZO A LAS: 2019-06-07 12:52:33', 'PERSONA: Jean Carlos IDENTIFICACION: 503880980 ESTADO: ACTIVO', 'PERSONAS'),
+(145, 'admin', 'INSERTO A LAS: 2019-06-07 12:54:11', 'USUARIO: jeank ESTADO: ACTIVO', 'USARIOS'),
+(146, 'admin', 'INSERTO A LAS: 2019-06-07 12:58:22', 'DEPARTAMENTO: TESORERIA CODIGO DIMINUTIVO: TESO ESTADO: ACTIVADO', 'DEPARTAMENTOS'),
+(147, 'admin', 'INSERTO A LAS: 2019-06-07 12:59:45', 'DEPARTAMENTO: HACIENDA CODIGO DIMINUTIVO: HACI ESTADO: ACTIVADO', 'DEPARTAMENTOS'),
+(148, 'admin', 'INSERTO A LAS: 2019-06-07 13:01:25', 'LA CAJA: TESO-1    UBICACACION: ESTANTE 6 ESTADO: ACTIVO', 'CAJAS'),
+(149, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACP-7-1 VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(150, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACT-20-1 VIGENCIA: 2 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(151, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACT-20-2 VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(152, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACD-17-1 VIGENCIA: 4 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(153, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACD-17-2 VIGENCIA: 5 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(154, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACD-17-3 VIGENCIA: 14 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(155, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACM-2-1 VIGENCIA: 15 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(156, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACM-2-2 VIGENCIA: 16 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(157, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACM-2-3 VIGENCIA: 17 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(158, 'admin', 'INSERTO A LAS: 2019-06-07 13:02:33', 'EXPEDIENTE: ACM-2-4 VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(159, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:02:46', 'EXPEDIENTE: ACM-2-3 VIGENCIA: 17 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(160, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:02:51', 'EXPEDIENTE: ACM-2-1 VIGENCIA: 15 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(161, 'admin', 'ELIMINO A LAS: 2019-06-07 13:02:57', 'EXPEDIENTE: ACM-2-3 VIGENCIA: 17 ANNOS ESTADO: ELIMINADO', 'ARCHIVOS'),
+(162, 'admin', 'ELIMINO A LAS: 2019-06-07 13:03:01', 'EXPEDIENTE: ACD-17-3 VIGENCIA: 14 ANNOS ESTADO: ELIMINADO', 'ARCHIVOS'),
+(163, 'admin', 'INSERTO A LAS: 2019-06-07 13:05:42', 'EXPEDIENTE: AVL-173-1 VIGENCIA: 5 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(164, 'admin', 'INSERTO A LAS: 2019-06-07 13:08:42', 'LA BOLETA: 1    RESPONSABLE DOCUMENTACION: JASON BARRANTES APU ESTADO: PENDIENTE', 'BOLETAS'),
+(165, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:08:42', 'EXPEDIENTE: ACP-7-1 VIGENCIA: 1 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(166, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:08:42', 'EXPEDIENTE: ACT-20-2 VIGENCIA: 3 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(167, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:08:42', 'EXPEDIENTE: ACM-2-4 VIGENCIA: 18 ANNOS ESTADO: PRESTADO', 'ARCHIVOS'),
+(168, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:10:07', 'EXPEDIENTE: ACP-7-1 VIGENCIA: 1 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(169, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:10:11', 'EXPEDIENTE: ACT-20-2 VIGENCIA: 3 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(170, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:10:14', 'EXPEDIENTE: ACM-2-4 VIGENCIA: 18 ANNOS ESTADO: DISPONIBLE', 'ARCHIVOS'),
+(171, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:10:21', 'LA BOLETA: 1    RESPONSABLE DOCUMENTACION: JASON BARRANTES APU ESTADO: DEVUELTA', 'BOLETAS'),
+(172, 'admin', 'ACTUALIZO A LAS: 2019-06-07 13:11:51', 'USUARIO: admin ESTADO: ACTIVO', 'Users');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `boletas`
+--
+
+CREATE TABLE `boletas` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `num_boleta` int(10) UNSIGNED NOT NULL,
+  `tipo_comprobante` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `iddepartamento` int(10) UNSIGNED NOT NULL,
+  `idpersona` int(10) UNSIGNED NOT NULL,
+  `fecha_limite` datetime DEFAULT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `boletas`
+--
+
+INSERT INTO `boletas` (`id`, `num_boleta`, `tipo_comprobante`, `idusuario`, `iddepartamento`, `idpersona`, `fecha_limite`, `estado`, `created_at`, `updated_at`) VALUES
+(1, 1, 'boleta', 1, 7, 3, '2019-06-15 10:00:00', 1, '2019-06-07 19:08:42', '2019-06-07 19:10:21');
+
+--
+-- Disparadores `boletas`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizar_Boleta_bitacora` AFTER UPDATE ON `boletas` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE idpersona INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+        DECLARE nombre_persona varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET idpersona  := new.idpersona ;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET nombre_persona = buscar_nombre_persona(idpersona);
+             SET aux_estado := new.estado;
+      
+				 IF aux_estado = 0 THEN 
+					SET estado ='PENDIENTE';
+							insert 
+								into bitacoras(					
+									usuario,
+									accion,					
+									descripcion,
+									modulo
+								)values(
+									
+									usuario,
+									CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+									CONCAT(IFNULL(TRIM('LA BOLETA:'), ''),' ',  IFNULL(TRIM(new.num_boleta), ''),'    ',
+									IFNULL(TRIM(' RESPONSABLE DOCUMENTACION: '),' '),' ', IFNULL(TRIM(nombre_persona),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+									'BOLETAS'
+							);
+					
+				ELSE
+				SET estado ='DEVUELTA';
+						insert 
+								into bitacoras(					
+									usuario,
+									accion,					
+									descripcion,
+									modulo
+								)values(
+									
+									usuario,
+									CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+									CONCAT(IFNULL(TRIM('LA BOLETA:'), ''),' ',  IFNULL(TRIM(new.num_boleta), ''),'    ',
+									IFNULL(TRIM(' RESPONSABLE DOCUMENTACION: '),' '),' ', IFNULL(TRIM(nombre_persona),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+									'BOLETAS'
+							);
+      
+				END IF;
+             
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_Boleta_bitacora` AFTER INSERT ON `boletas` FOR EACH ROW BEGIN
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE idpersona INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+        DECLARE nombre_persona varchar(100);
+		DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET idpersona  := new.idpersona ;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET nombre_persona = buscar_nombre_persona(idpersona);
+             
+             SET estado ='PENDIENTE';
+    
+				insert 
+				into bitacoras(					
+					usuario,
+					accion,					
+					descripcion,
+					modulo
+				)values(
+					
+					usuario,
+					CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+					CONCAT(IFNULL(TRIM('LA BOLETA:'), ''),' ',  IFNULL(TRIM(new.num_boleta), ''),'    ',
+                    IFNULL(TRIM(' RESPONSABLE DOCUMENTACION: '),' '),' ', IFNULL(TRIM(nombre_persona),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+					'BOLETAS'
+			);
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `cajas`
+--
+
+CREATE TABLE `cajas` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `iddepartamento` int(10) UNSIGNED NOT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `diminutivo_caja` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `num_caja` int(11) NOT NULL,
+  `ubicacion` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `cajas`
+--
+
+INSERT INTO `cajas` (`id`, `iddepartamento`, `idusuario`, `diminutivo_caja`, `num_caja`, `ubicacion`, `estado`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 'CONS-MU-1', 1, 'ESTANTE 1', 1, '2019-06-07 17:53:57', '2019-06-07 17:53:57'),
+(2, 2, 1, 'SECRE-CONS-1', 1, 'ESTANTE 2', 1, '2019-06-07 17:54:09', '2019-06-07 17:54:09'),
+(3, 2, 1, 'SECRE-CONS-2', 2, 'ESTANTE 2', 1, '2019-06-07 17:54:18', '2019-06-07 17:54:18'),
+(4, 3, 1, 'AUDI-INTER-1', 1, 'ESTANTE 3', 1, '2019-06-07 17:54:33', '2019-06-07 17:54:33'),
+(5, 3, 1, 'AUDI-INTER-2', 2, 'ESTANTE 3', 1, '2019-06-07 17:54:45', '2019-06-07 17:54:45'),
+(6, 3, 1, 'AUDI-INTER-3', 3, 'ESTANTE 3', 1, '2019-06-07 17:54:59', '2019-06-07 17:54:59'),
+(7, 4, 1, 'JUNT-V-1', 1, 'ESTANTE 4', 1, '2019-06-07 17:55:37', '2019-06-07 17:55:37'),
+(8, 4, 1, 'JUNT-V-2', 2, 'ESTANTE 4', 1, '2019-06-07 17:55:45', '2019-06-07 17:55:45'),
+(9, 4, 1, 'JUNT-V-3', 3, 'ESTANTE 4', 1, '2019-06-07 17:55:55', '2019-06-07 17:55:55'),
+(10, 4, 1, 'JUNT-V-4', 4, 'ESTANTE 4', 1, '2019-06-07 17:56:07', '2019-06-07 17:56:07'),
+(11, 21, 1, 'DIRE-JURI-29', 1, 'ESTANTE 5', 1, '2019-06-07 18:00:40', '2019-06-07 18:00:40'),
+(12, 22, 1, 'TESO-1', 1, 'ESTANTE 6', 1, '2019-06-07 19:01:25', '2019-06-07 19:01:25');
+
+--
+-- Disparadores `cajas`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizar_Caja_bitacora` AFTER UPDATE ON `cajas` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+      
+				 IF aux_estado = 1 THEN 
+					SET estado ='ACTIVO';
+							insert 
+								into bitacoras(
+									
+									usuario,
+									accion,									
+									descripcion,
+									modulo
+								)values(
+									
+									usuario,
+									CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+									CONCAT(IFNULL(TRIM('LA CAJA:'), ''),' ',  IFNULL(TRIM(new.diminutivo_caja), ' '),'    ',
+                                    IFNULL(TRIM(' UBICACION: '),' '),' ',
+                                    IFNULL(TRIM(new.ubicacion),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+									'CAJAS'
+							);
+	
+				ELSE
+				SET estado ='DESACTIVADO';
+						insert 
+								into bitacoras(
+									
+									usuario,
+									accion,									
+									descripcion,
+									modulo
+								)values(
+									
+									usuario,
+									CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+									CONCAT(IFNULL(TRIM('LA CAJA:'), ''),' ',  IFNULL(TRIM(new.diminutivo_caja), '') ,' ',
+                                    IFNULL(TRIM(' UBICACION: '),' '),' ',IFNULL(TRIM(new.ubicacion),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+									'CAJAS'
+							);
+      
+				END IF;
+             
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_Caja_bitacora` AFTER INSERT ON `cajas` FOR EACH ROW BEGIN
+		DECLARE idusuario INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+		DECLARE estado varchar(100);
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+             SET estado ='ACTIVO';
+    
+				insert 
+				into bitacoras(					
+					usuario,
+					accion,					
+					descripcion,
+					modulo
+				)values(
+					
+					usuario,
+					CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+					CONCAT(IFNULL(TRIM('LA CAJA:'), ''),' ',  IFNULL(TRIM(new.diminutivo_caja), ''),'    ',
+                    IFNULL(TRIM(' UBICACACION: '),' '),' ', IFNULL(TRIM(new.ubicacion),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+					'CAJAS'
+			);
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `departamentos`
+--
+
+CREATE TABLE `departamentos` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `nombre_departamento` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `diminutivo_departamento` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descripcion` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `departamentos`
+--
+
+INSERT INTO `departamentos` (`id`, `idusuario`, `nombre_departamento`, `diminutivo_departamento`, `descripcion`, `estado`, `created_at`, `updated_at`) VALUES
+(1, 1, 'CONSEJO MUNICIPAL', 'CONS-MU', 'municipalidad de carrillo', 1, NULL, NULL),
+(2, 1, 'SECRETARIA DE CONSEJO', 'SECRE-CONS', 'municipalidad de carrillo', 1, NULL, NULL),
+(3, 1, 'AUDITORIA INTERNA', 'AUDI-INTER', 'municipalidad de carrillo', 1, NULL, NULL),
+(4, 1, 'JUNTA VIAL', 'JUNT-V', 'municipalidad de carrillo', 1, NULL, NULL),
+(5, 1, 'ALCALDIA', 'ALCAL', 'municipalidad de carrillo', 1, NULL, NULL),
+(6, 1, 'PLANIFICACION Y CONTROL', 'PLANI-CONTR', 'municipalidad de carrillo', 1, NULL, NULL),
+(7, 1, 'TECNOLOGIA DE INFORMACION Y COMUNICACION', 'TIF', 'municipalidad de carrillo', 1, NULL, NULL),
+(8, 1, 'DIRECCION INGENIERIA Y SERVICIOS', 'DIRE-ING-SERV', 'municipalidad de carrillo', 1, NULL, NULL),
+(9, 1, 'DESARROLLO TERRITORIAL', 'DESARR-TERR', 'municipalidad de carrillo', 1, NULL, NULL),
+(10, 1, 'GESTION AMBIENTAL', 'GEST-AMBI', 'municipalidad de carrillo', 1, NULL, NULL),
+(11, 1, 'OBRAS MUNICIPALES', 'OBR-MUNI', 'municipalidad de carrillo', 1, NULL, NULL),
+(12, 1, 'SERVICIOS MUNICIPALES', 'SERV-MUNI', 'municipalidad de carrillo', 1, NULL, NULL),
+(13, 1, 'PERMISOS DE CONSTRUCCION', 'PERMI-CONSTR', 'municipalidad de carrillo', 1, NULL, NULL),
+(14, 1, 'REGULACION', 'REGUL', 'municipalidad de carrillo', 1, NULL, NULL),
+(15, 1, 'OTROS PROYECTOS', 'OTROS-PROY', 'municipalidad de carrillo', 1, NULL, NULL),
+(16, 1, 'LIMPIEZA Y ORNATO', 'LIMP-ORN', 'municipalidad de carrillo', 1, NULL, NULL),
+(17, 1, 'SISTEMA GEOGRAFICO CATASTRAL', 'SIST-GEOGRAF-CATAST', 'municipalidad de carrillo', 1, NULL, NULL),
+(18, 1, 'CONTROL Y SUPERVICION', 'CONTR-SUPERV', 'municipalidad de carrillo', 1, NULL, NULL),
+(19, 1, 'UNIDAD TECNICA', 'UNI-TECN', 'municipalidad de carrillo', 1, NULL, NULL),
+(20, 1, 'MANTENIMIENTO MUNICIPAL', 'MANT-MUNI', 'municipalidad de carrillo', 1, NULL, NULL),
+(21, 1, 'DIRECCION JURIDICA', 'DIRE-JURI', 'municipalidad de carrillo', 1, '2019-06-07 17:59:16', '2019-06-07 18:00:21'),
+(22, 1, 'TESORERIA', 'TESO', 'DINERO', 1, '2019-06-07 18:58:22', '2019-06-07 18:58:22'),
+(23, 1, 'HACIENDA', 'HACI', 'TERRENO', 1, '2019-06-07 18:59:45', '2019-06-07 18:59:45');
+
+--
+-- Disparadores `departamentos`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizar_Departamento_bitacora` AFTER UPDATE ON `departamentos` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+             
+				  IF aux_estado = 1 THEN 
+					SET estado ='ACTIVADO';
+                    
+							insert 
+							into bitacoras(
+								
+								usuario,
+								accion,
+								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('DEPARTAMENTO: '), ''),' ',  IFNULL(TRIM(new.nombre_departamento), '') ,' CODIGO DIMINUTIVO: ',  IFNULL(TRIM(new.diminutivo_departamento), ''),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'DEPARTAMENTOS'
+						);
+						
+                 ELSE
+					SET estado ='DESACTIVADO';
+                 
+                        insert 
+							into bitacoras(
+								
+								usuario,
+								accion,
+								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('DEPARTAMENTO: '), ''),' ',  IFNULL(TRIM(new.nombre_departamento), '') ,' CODIGO DIMINUTIVO: ',  IFNULL(TRIM(new.diminutivo_departamento), ''),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'DEPARTAMENTOS'
+						);
+                 
+				  END IF;
+			
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_Departamento_bitacora` AFTER INSERT ON `departamentos` FOR EACH ROW BEGIN  
+     
+		DECLARE idusuario INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+		DECLARE estado varchar(100);
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+             SET estado ='ACTIVADO';
+		
+			
+            insert 
+			into bitacoras(
+				
+				usuario,
+				accion,
+				
+				descripcion,
+				modulo
+			)values(
+				
+				usuario,
+				CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+				CONCAT(IFNULL(TRIM('DEPARTAMENTO: '), ''),' ',  IFNULL(TRIM(new.nombre_departamento), '') ,' CODIGO DIMINUTIVO: ',  IFNULL(TRIM(new.diminutivo_departamento), ''),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+				'DEPARTAMENTOS'
+				);
+				   
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `detalle_boletas`
+--
+
+CREATE TABLE `detalle_boletas` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `idboleta` int(10) UNSIGNED NOT NULL,
+  `idarchivo` int(10) UNSIGNED NOT NULL,
+  `fecha_devolucion_archivo` datetime DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `detalle_boletas`
+--
+
+INSERT INTO `detalle_boletas` (`id`, `idboleta`, `idarchivo`, `fecha_devolucion_archivo`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, NULL, '2019-06-07 19:08:42', NULL),
+(2, 1, 3, NULL, '2019-06-07 19:08:42', NULL),
+(3, 1, 10, NULL, '2019-06-07 19:08:42', NULL);
+
+--
+-- Disparadores `detalle_boletas`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizarArchivos` AFTER INSERT ON `detalle_boletas` FOR EACH ROW UPDATE archivos
+		set estado = '2' 
+		where id = new.idarchivo
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `documentales`
+--
+
+CREATE TABLE `documentales` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `nombre_documental` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `codigo_diminutivo` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descripcion` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `vigencia` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `documentales`
+--
+
+INSERT INTO `documentales` (`id`, `idusuario`, `nombre_documental`, `codigo_diminutivo`, `descripcion`, `vigencia`, `estado`, `created_at`, `updated_at`) VALUES
+(1, 1, 'ACCION PERSONAL', 'ACP-7', 'municipalidad de carrillo', '2031', 1, NULL, NULL),
+(2, 1, 'ACTAS', 'ACT-20', 'municipalidad de carrillo', '2032', 1, NULL, NULL),
+(3, 1, 'ACUERDOS', 'ACD-17', 'municipalidad de carrillo', '2033', 1, NULL, NULL),
+(4, 1, 'ACUMULADO INGRESO', 'ACM-2', 'municipalidad de carrillo', '2034', 1, NULL, NULL),
+(5, 1, 'ADELANTO CAJA CHICA', 'ACH-10', 'municipalidad de carrillo', '2035', 1, NULL, NULL),
+(6, 1, 'AHORRO Y APORTE PATRONAL ASEMUC ', 'AAPA-1', 'municipalidad de carrillo', '2036', 1, NULL, NULL),
+(7, 1, 'ALBUM DE DIAPOSITIVAS ', 'ADD-9', 'municipalidad de carrillo', '2037', 1, NULL, NULL),
+(8, 1, 'ARQUEO', 'ARQ-1', 'municipalidad de carrillo', '2038', 1, NULL, NULL),
+(9, 1, 'ARREGLOS DE PAGO ', 'ADP-6', 'municipalidad de carrillo', '2039', 1, NULL, NULL),
+(10, 1, 'ASIENTOS CONTABLES', 'ASC-87', 'municipalidad de carrillo', '2040', 1, NULL, NULL),
+(11, 1, 'AUTORIZACONES', 'AUT-2', 'municipalidad de carrillo', '2041', 1, NULL, NULL),
+(12, 1, 'AVALUOS', 'AVL-173', 'municipalidad de carrillo', '2042', 1, NULL, NULL),
+(13, 1, 'AVISO DE COBRO', 'ADC-236', 'municipalidad de carrillo', '2043', 1, NULL, NULL),
+(14, 1, 'BALANCES FINANCIEROS', 'BFN-2', 'municipalidad de carrillo', '2044', 1, NULL, NULL),
+(15, 1, 'CENSO', 'CNS-10', 'municipalidad de carrillo', '2045', 1, NULL, NULL),
+(16, 1, 'CERTIFICACIONES', 'CFC-118', 'municipalidad de carrillo', '2046', 1, NULL, NULL),
+(17, 1, 'COMPROBANTE DE EGRESOS', 'CPE-1', 'municipalidad de carrillo', '2047', 1, NULL, NULL),
+(18, 1, 'COMPROBANTE DE PAGO', 'CDP-1', 'municipalidad de carrillo', '2048', 1, NULL, NULL),
+(19, 1, 'COMPROBANTES DE INGRESOS Y RECIBOS MULTIPLES', 'CIR-677', 'municipalidad de carrillo', '2049', 1, NULL, NULL),
+(20, 1, 'COMPROBANTES DE PAGO', 'COMP-DE-PAGO', 'municipalidad de carrillo', '2050', 1, NULL, NULL),
+(21, 1, 'EXPEDIENTE', 'EXP', 'municipalidad de carrillo', '2020', 1, '2019-06-07 17:58:44', '2019-06-07 17:58:44');
+
+--
+-- Disparadores `documentales`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizar_Documental_bitacora` AFTER UPDATE ON `documentales` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+             
+				 IF aux_estado = 1 THEN 
+					SET estado ='ACTIVADO';
+                    
+							insert 
+							into bitacoras(
+								
+								usuario,
+								accion,
+								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('El DOCUMENTAL:'), ''),' ',  IFNULL(TRIM(new.nombre_documental), '') ,' ',  IFNULL(TRIM(' CODIGO: '), ' '),' ', IFNULL(TRIM(new.codigo_diminutivo),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'DOCUMENTALES'
+						);
+				
+                    
+                    
+                       ELSE
+					SET estado ='DESACTIVADO';
+						
+                        insert 
+							into bitacoras(
+								
+								usuario,
+								accion,
+								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								CONCAT(IFNULL(TRIM('El DOCUMENTO:'), ''),' ',  IFNULL(TRIM(new.nombre_documental), '') ,' ',  IFNULL(TRIM(' CODIGO: '), ' '),' ', IFNULL(TRIM(new.codigo_diminutivo),' '),' ',IFNULL(TRIM(estado),'')),
+								'DOCUMENTALES'
+						);
+                    
+                    
+                     END IF;
+             
+		
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_Documental_bitacora` AFTER INSERT ON `documentales` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+		DECLARE estado varchar(100);
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+             SET estado ='ACTIVADO';
+    
+				insert 
+				into bitacoras(
+					
+					usuario,
+					accion,
+					
+					descripcion,
+					modulo
+				)values(
+					
+					usuario,
+					CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+					CONCAT(IFNULL(TRIM('El DOCUMENTO:'), ''),' ',  IFNULL(TRIM(new.nombre_documental), '') ,' ',  IFNULL(TRIM(' CODIGO: '), ' '),' ', IFNULL(TRIM(new.codigo_diminutivo),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+					'DOCUMENTALES'
+			);
+				
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `inventarios`
+--
+
+CREATE TABLE `inventarios` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `iddepartamento` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `iddocumental` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `idpersona` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `idcaja` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `idusuario` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `nuevo_num_expediente` int(11) DEFAULT NULL,
+  `viejo_num_expediente` varchar(45) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `contenido` varchar(256) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fecha_extrema` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `anno` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `ubicacion` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `descripcion` varchar(256) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `valor` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `vigencia` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL,
+  `fecha_expiracion` varchar(45) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `inventarios`
+--
+
+INSERT INTO `inventarios` (`id`, `iddepartamento`, `iddocumental`, `idpersona`, `idcaja`, `idusuario`, `nuevo_num_expediente`, `viejo_num_expediente`, `contenido`, `fecha_extrema`, `anno`, `ubicacion`, `descripcion`, `valor`, `vigencia`, `estado`, `created_at`, `updated_at`, `fecha_expiracion`) VALUES
+(1, 'CONSEJO MUNICIPAL', 'ACCION PERSONAL', 'JOSE LENIN ULLOA ANCHIA', 'CONS-MU-1', '1', 0, 'ACP-7-1', 'LEYES DECRETOS JURISPRUDENCIA', '2002', '2001', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO1', 'LEGAL', '1', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2020-06-07 01:02:33'),
+(2, 'SECRETARIA DE CONSEJO', 'ACTAS', 'CAROLINA BUSTAMANTE ARIAS', 'SECRE-CONS-1', '1', 0, 'ACT-20-1', 'RECURSO VILLAS DEL COCO VP S A', '2003', '2004', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO2', 'CIENTIFICO CULTURAL', '2', 'PRESTADO', '2019-06-07 19:02:33', NULL, '2021-06-07 01:02:33'),
+(3, 'SECRETARIA DE CONSEJO', 'ACTAS', 'CAROLINA BUSTAMANTE ARIAS', 'SECRE-CONS-2', '1', 0, 'ACT-20-2', 'Z M T VILLAS DEL COCO V P ', '2005', '2006', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO3', 'LEGAL', '3', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2022-06-07 01:02:33'),
+(4, 'AUDITORIA INTERNA', 'ACUERDOS', 'JASON BARRANTES APU', 'AUDI-INTER-1', '1', 0, 'ACD-17-1', 'MARIO MARTINEZ MARTINEZ DONACION DE FRANJA DE TERRENO ', '2007', '2008', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO4', 'LEGAL', '4', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2023-06-07 01:02:33'),
+(5, 'AUDITORIA INTERNA', 'ACUERDOS', 'JASON BARRANTES APU', 'AUDI-INTER-2', '1', 0, 'ACD-17-2', 'DEPARTAMENTO DE PROVEEDURIA ', '2009', '2010', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO5', 'CIENTIFICO CULTURAL', '5', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2024-06-07 01:02:33'),
+(6, 'AUDITORIA INTERNA', 'ACUERDOS', 'JASON BARRANTES APU', 'AUDI-INTER-3', '1', 0, 'ACD-17-3', 'RECURSO DE APELACION CECILIA RODRIGUEZ PICADO ', '2011', '2012', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO6', 'LEGAL', '14', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2033-06-07 01:02:33'),
+(7, 'JUNTA VIAL', 'ACUMULADO INGRESO', 'EDDIER LOPEZ LOPEZ', 'JUNT-V-1', '1', 0, 'ACM-2-1', 'ALCALDIA 2009 2010 2011', '2013', '2014', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO7', 'CIENTIFICO CULTURAL', '15', 'PRESTADO', '2019-06-07 19:02:33', NULL, '2034-06-07 01:02:33'),
+(8, 'JUNTA VIAL', 'ACUMULADO INGRESO', 'EDDIER LOPEZ LOPEZ', 'JUNT-V-2', '1', 0, 'ACM-2-2', 'DENNIS CALDERON VALVERDE OFICIOS 2012 ', '2015', '2016', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO8', 'CIENTIFICO CULTURAL', '16', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2035-06-07 01:02:33'),
+(9, 'JUNTA VIAL', 'ACUMULADO INGRESO', 'EDDIER LOPEZ LOPEZ', 'JUNT-V-3', '1', 0, 'ACM-2-3', 'CRITERIOS MARTHA E THOMPSON JIMENEZ', '2017', '2018', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO9', 'CIENTIFICO CULTURAL', '17', 'PRESTADO', '2019-06-07 19:02:33', NULL, '2036-06-07 01:02:33'),
+(10, 'JUNTA VIAL', 'ACUMULADO INGRESO', 'EDDIER LOPEZ LOPEZ', 'JUNT-V-4', '1', 0, 'ACM-2-4', 'PROYECTO DE REGLAMENTO PARA LA GESTION CONTROL Y APLICACIÓN DE LA TECNOLOGIA DE IMFORMACION', '2019', '2020', 'NINGUNA', 'CUALQUIER COSA AL RESPECTO10', 'LEGAL', '18', 'DISPONIBLE', '2019-06-07 19:02:33', NULL, '2037-06-07 01:02:33');
+
+--
+-- Disparadores `inventarios`
+--
+DELIMITER $$
+CREATE TRIGGER `insertarTablaArchivo3` AFTER INSERT ON `inventarios` FOR EACH ROW BEGIN  
+ 
+    DECLARE iddepartamento INT DEFAULT 0;
+    DECLARE iddocumental INT DEFAULT 0;
+    DECLARE idpersona INT DEFAULT 0;
+    DECLARE idcaja INT DEFAULT 0;
+	 /*DECLARE aux_viejo_num_expediente varchar(50);*/
+	DECLARE ubicacion varchar(50);
+    DECLARE descripcion varchar(50);
+    DECLARE valor varchar(50);
+	DECLARE estado INT DEFAULT 0;
+    
+	
+    DECLARE existe INT DEFAULT 0;
+	DECLARE respuesta varchar(50);
+    
+    
+	DECLARE nombre_departamento varchar(50);
+	DECLARE nombre_documental varchar(50);
+    DECLARE nombre_persona varchar(50);
+	DECLARE diminutivo_caja varchar(50);
+    DECLARE idusuario INT DEFAULT 0;
+    DECLARE nuevo_num_expediente INT DEFAULT 0;
+    DECLARE viejo_num_expediente varchar(50);
+    DECLARE contenido varchar(256);
+	DECLARE fecha_extrema varchar(50);
+	DECLARE anno varchar(50);
+    /*DECLARE aux_ubicacion varchar(50);*/
+    DECLARE aux_valor varchar(50);
+    DECLARE vigencia varchar(50);
+    DECLARE aux_estado varchar(50);
+	DECLARE fecha_expiracion varchar(50); # nadamas aqui se declara
+    
+    /* VOY POR EL MAXIMO NUEVO NUMERO DE EXPEDIENTE RECUERDA AGREGAR EL CAMPO CREATED_AT*/
+
+    
+   
+		SET nombre_departamento := new.iddepartamento;
+		SET nombre_documental := new.iddocumental;
+        SET nombre_persona := new.idpersona;
+        SET diminutivo_caja := new.idcaja;
+        SET idusuario := new.idusuario;/* la aplicacion lo envia entonces nadamas es de pasarlo */
+        SET nuevo_num_expediente := new.nuevo_num_expediente;/* todos llegan en cero*/
+		SET viejo_num_expediente := new.viejo_num_expediente;/* lo paso aca por si mas adelante necesita validar o no*/
+        SET contenido := new.contenido;/* nadamas se lo paso*/
+		SET fecha_extrema := new.fecha_extrema;/* nadamas se lo paso*/
+		SET anno := new.anno;/* nadamas se lo paso*/
+        /* SET aux_ubicacion := new.ubicacion; NO HAY NECESIDAD DE PASARLA PUESTO QUE EL SISTEMA LO ENVIA COMO NINGUNA */
+        SET descripcion := new.descripcion;/* nadamas se lo paso*/
+        SET aux_valor := new.valor;/**/
+		SET vigencia := new.vigencia;/* nadamas se lo paso*/
+        SET aux_estado := new.estado;/* nadamas se lo paso*/
+        SET fecha_expiracion := new.fecha_expiracion;
+        
+             /* LLAMADO DE LAS FUNCIONES*/
+			SET iddepartamento = buscariddepartamento(nombre_departamento);
+			SET iddocumental = buscariddocumental(nombre_documental);	
+            SET idpersona = buscaridpersona(nombre_persona);	
+            SET idcaja = buscaridcaja(diminutivo_caja);
+		    SET nuevo_num_expediente = buscarMax_nuevo_num_expediente(iddocumental);
+            /*SET aux_viejo_num_expediente = validar_viejo_num_expediente(viejo_num_expediente,iddocumental,nuevo_num_expediente);*/
+			SET ubicacion = buscarUbicacion_caja(idcaja);
+            SET valor = validar_valor(aux_valor);
+            SET estado = validar_estado(aux_estado);
+            
+            SET existe = validar_existencia_archivo(viejo_num_expediente);
+            SET respuesta = 'repetido';
+            
+				IF existe = 0 THEN
+                /* elimine tambien */
+                
+					insert 
+					into archivos(
+					
+							iddepartamento,
+							iddocumental,
+							idpersona,
+							idcaja,
+							idusuario,
+							nuevo_num_expediente,
+							viejo_num_expediente,
+							contenido,
+							fecha_extrema,
+							anno,
+							ubicacion,
+							descripcion,
+							valor,
+							vigencia,
+							estado,
+							created_at,
+                            fecha_expiracion
+							
+					)values(
+						
+						iddepartamento,
+						iddocumental,
+						idpersona,
+						idcaja,
+						idusuario,
+						nuevo_num_expediente,
+						viejo_num_expediente,
+						contenido,
+						fecha_extrema,
+						anno,
+						ubicacion,
+						descripcion,
+						valor,
+						vigencia,
+						estado,
+						now(),
+                        fecha_expiracion
+						
+					  );
+                      
+                
+				END IF;
+				   
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `migrations`
+--
+
+CREATE TABLE `migrations` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `migration` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `batch` int(11) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `migrations`
+--
+
+INSERT INTO `migrations` (`id`, `migration`, `batch`) VALUES
+(1, '2014_10_12_100000_create_password_resets_table', 1),
+(2, '2019_01_30_022825_create_departamentos_table', 1),
+(3, '2019_02_03_053733_create_documentales_table', 1),
+(4, '2019_02_05_043945_create_personas_table', 1),
+(5, '2019_02_05_180436_create_cajas_table', 1),
+(6, '2019_02_06_023824_create_roles_table', 1),
+(7, '2019_02_07_000000_create_users_table', 1),
+(8, '2019_02_13_043228_create_archivos_table', 1),
+(9, '2019_05_05_043102_create_bitacoras_table', 1),
+(10, '2019_05_08_033149_create_boletas_table', 1),
+(11, '2019_05_12_204222_create_detalle_boletas_table', 1),
+(12, '2019_05_28_180937_create_inventarios_table', 1),
+(13, '2019_06_02_071408_create_notifications_table', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `notifications`
+--
+
+CREATE TABLE `notifications` (
+  `id` char(36) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `notifiable_type` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `notifiable_id` bigint(20) UNSIGNED NOT NULL,
+  `data` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `read_at` timestamp NULL DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `notifications`
+--
+
+INSERT INTO `notifications` (`id`, `type`, `notifiable_type`, `notifiable_id`, `data`, `read_at`, `created_at`, `updated_at`) VALUES
+('09e2e380-0ec0-4abd-a7a7-8f312cf419a4', 'App\\Notifications\\NotifyAdmin', 'App\\User', 4, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 18:04:42', '2019-06-07 18:04:42'),
+('16b84cf9-613a-4e3a-b5ee-6514aec0ad88', 'App\\Notifications\\NotifyAdmin', 'App\\User', 1, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 17:57:08', '2019-06-07 17:57:08'),
+('3c907f5e-2567-4ca0-a58f-2cd4f7129aee', 'App\\Notifications\\NotifyAdmin', 'App\\User', 2, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 19:08:43', '2019-06-07 19:08:43'),
+('51656ba9-fbe6-4957-99f8-929df63fb407', 'App\\Notifications\\NotifyAdmin', 'App\\User', 1, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 18:03:07', '2019-06-07 18:03:07'),
+('57fb2f73-9be1-4d8f-93bb-cce513380321', 'App\\Notifications\\NotifyAdmin', 'App\\User', 4, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 19:08:43', '2019-06-07 19:08:43'),
+('694810e9-b449-4a63-bdc1-7a0a82ac0b00', 'App\\Notifications\\NotifyAdmin', 'App\\User', 4, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 18:03:08', '2019-06-07 18:03:08'),
+('76c0d4f5-4d07-4f5e-ab10-320229dc4ad5', 'App\\Notifications\\NotifyAdmin', 'App\\User', 4, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 17:57:09', '2019-06-07 17:57:09'),
+('7cb04677-fd78-46ef-82d4-4bebb7981785', 'App\\Notifications\\NotifyAdmin', 'App\\User', 2, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 18:04:41', '2019-06-07 18:04:41'),
+('8f9be1e4-bd27-4b82-8dc5-6f227d685d40', 'App\\Notifications\\NotifyAdmin', 'App\\User', 1, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 18:04:41', '2019-06-07 18:04:41'),
+('c5009e50-21a3-4659-9214-92d2d93ea32b', 'App\\Notifications\\NotifyAdmin', 'App\\User', 2, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 17:57:09', '2019-06-07 17:57:09'),
+('d45364e3-43c5-4ecb-86bd-d97a28c4b297', 'App\\Notifications\\NotifyAdmin', 'App\\User', 1, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 19:08:42', '2019-06-07 19:08:42'),
+('f863430f-92fb-4f46-b520-ea32050ed00d', 'App\\Notifications\\NotifyAdmin', 'App\\User', 2, '{\"datos\":{\"archivos\":{\"numero\":0,\"msj\":\"Archivos Expirados:\"}}}', NULL, '2019-06-07 18:03:08', '2019-06-07 18:03:08');
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `password_resets`
+--
+
+CREATE TABLE `password_resets` (
+  `email` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `token` varchar(191) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `created_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `personas`
+--
+
+CREATE TABLE `personas` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `iddepartamento` int(10) UNSIGNED NOT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `nombre` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `tipo_identificacion` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `num_identificacion` int(11) NOT NULL,
+  `sexo` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `telefono` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `fax` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `email` varchar(50) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `direccion` varchar(265) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
+  `created_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `personas`
+--
+
+INSERT INTO `personas` (`id`, `iddepartamento`, `idusuario`, `nombre`, `tipo_identificacion`, `num_identificacion`, `sexo`, `telefono`, `fax`, `email`, `direccion`, `estado`, `created_at`, `updated_at`) VALUES
+(1, 1, 1, 'JOSE LENIN ULLOA ANCHIA', 'Cedula', 604060653, 'Hombre', '84633772', '11111111', 'JOSELENIN@GMAIL.COM', 'CANAS,GUANACASTE', 1, NULL, NULL),
+(2, 2, 1, 'CAROLINA BUSTAMANTE ARIAS', 'Pasaporte', 202220222, 'Mujer', '22222222', '22222222', 'CAROLINA@GMAIL.COM', 'CARRILLO,GUANACASTE', 1, NULL, NULL),
+(3, 3, 1, 'JASON BARRANTES APU', 'Cedula', 303330333, 'Hombre', '33333333', '33333333', 'JASON@GMAIL.COM', 'SANTA CRUZ, GUANACASTE', 1, NULL, NULL),
+(4, 4, 1, 'EDDIER LOPEZ LOPEZ', 'Cedula', 404440444, 'Hombre', '44444444', '44444444', 'EDDIER@GMAIL.COM', 'SARDINAL GUANACASTE', 1, NULL, NULL),
+(5, 19, 1, 'Jean Carlos', 'Cedula', 503880980, 'Hombre', '61015036', NULL, 'jeank1992@gmail.com', 'Santa Ana', 1, '2019-06-07 18:51:36', '2019-06-07 18:52:33');
+
+--
+-- Disparadores `personas`
+--
+DELIMITER $$
+CREATE TRIGGER `actualizar_Persona_bitacora` AFTER UPDATE ON `personas` FOR EACH ROW BEGIN
+      
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+      
+				 IF aux_estado = 1 THEN 
+					SET estado ='ACTIVO';
+						insert 
+							into bitacoras(
+								
+								usuario,
+								accion,
+								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								
+								CONCAT(IFNULL(TRIM('PERSONA:'), ''),' ',IFNULL(TRIM(new.nombre), '') ,' IDENTIFICACION: ',  IFNULL(TRIM(new.num_identificacion),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'PERSONAS'
+						);
+							
+				ELSE
+				SET estado ='DESACTIVADO';
+					
+							insert 
+							into bitacoras(
+								
+								usuario,
+								accion,
+								
+								descripcion,
+								modulo
+							)values(
+								
+								usuario,
+								CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+								
+								CONCAT(IFNULL(TRIM('PERSONA:'), ''),' ',IFNULL(TRIM(new.nombre), '') ,' IDENTIFICACION: ',  IFNULL(TRIM(new.num_identificacion),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+								'PERSONAS'
+						);
+      
+				END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_Persona_bitacora` AFTER INSERT ON `personas` FOR EACH ROW BEGIN
+       
+		DECLARE idusuario INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+		DECLARE estado varchar(100);
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+             SET estado ='ACTIVO';
+             
+			insert 
+			into bitacoras(
+				
+				usuario,
+				accion,
+				descripcion,
+				modulo
+			)values(
+				
+				usuario,
+				CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+				
+				CONCAT(IFNULL(TRIM('PERSONA:'), ''),' ',IFNULL(TRIM(new.nombre), '') ,' IDENTIFICACION: ',  IFNULL(TRIM(new.num_identificacion), ''),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+				'PERSONAS'
+		);
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `roles`
+--
+
+CREATE TABLE `roles` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `nombre` varchar(30) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `descripcion` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL,
+  `condicion` tinyint(1) NOT NULL DEFAULT '1'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `roles`
+--
+
+INSERT INTO `roles` (`id`, `nombre`, `descripcion`, `condicion`) VALUES
+(1, 'Super administrador', 'super administrador', 1),
+(2, 'Administrador', 'administrador', 1),
+(3, 'Funcionario', 'consultor de archivos', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `users`
+--
+
+CREATE TABLE `users` (
+  `id` int(10) UNSIGNED NOT NULL,
+  `iddepartamento` int(10) UNSIGNED NOT NULL,
+  `idusuario` int(10) UNSIGNED NOT NULL,
+  `idrol` int(10) UNSIGNED NOT NULL,
+  `usuario` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `password` varchar(100) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `estado` tinyint(1) NOT NULL DEFAULT '1',
+  `remember_token` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+--
+-- Volcado de datos para la tabla `users`
+--
+
+INSERT INTO `users` (`id`, `iddepartamento`, `idusuario`, `idrol`, `usuario`, `password`, `estado`, `remember_token`) VALUES
+(1, 1, 1, 1, 'admin', '$2y$10$65S7ZUnLWdvhzVBHWZ9WsOv0nmTdhs701T/cOaWkY6sxzpWypAjDW', 1, '0G0kWSiDkzbqfNDs5ZawPiswg9tc5JWQdbuHe0ymMTIzD0jgnYqVl4LBGaTQ'),
+(2, 2, 1, 2, 'carolina', '$2y$10$65S7ZUnLWdvhzVBHWZ9WsOv0nmTdhs701T/cOaWkY6sxzpWypAjDW', 1, NULL),
+(4, 4, 1, 1, 'eddier', '$2y$10$65S7ZUnLWdvhzVBHWZ9WsOv0nmTdhs701T/cOaWkY6sxzpWypAjDW', 1, NULL),
+(3, 3, 1, 3, 'jason', '$2y$10$65S7ZUnLWdvhzVBHWZ9WsOv0nmTdhs701T/cOaWkY6sxzpWypAjDW', 1, NULL),
+(5, 19, 1, 3, 'jeank', '$2y$10$qX96r5iMmxNCggZ/1roVaObouzO8EJa8LRGzUBSxHZI1zeCU69AMm', 1, NULL);
+
+--
+-- Disparadores `users`
+--
+DELIMITER $$
+CREATE TRIGGER `actualiazar_User_bitacora` AFTER UPDATE ON `users` FOR EACH ROW BEGIN
+    
+		DECLARE idusuario INT DEFAULT 0;
+		DECLARE usuario varchar(100);
+        DECLARE aux_estado INT DEFAULT 0;
+        DECLARE estado varchar(100);
+        
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+			 SET aux_estado := new.estado;
+      
+				IF aux_estado = 1 THEN 
+					SET estado ='ACTIVO';
+								insert 
+									into bitacoras(
+										
+										usuario,
+										accion,
+										descripcion,
+										modulo
+									)values(
+										
+										usuario,
+										CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+										CONCAT(IFNULL(TRIM('USUARIO:'), ''),' ',  IFNULL(TRIM(new.usuario),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+										'Users'
+								);
+								
+				ELSE
+				SET estado ='DESACTIVADO';
+									insert 
+									into bitacoras(
+										
+										usuario,
+										accion,
+										descripcion,
+										modulo
+									)values(
+										
+										usuario,
+										CONCAT(IFNULL(TRIM('ACTUALIZO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+										CONCAT(IFNULL(TRIM('USUARIO:'), ''),' ',  IFNULL(TRIM(new.usuario),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+										'Users'
+								);
+      
+				END IF;
+        
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `insertar_User_bitacora` AFTER INSERT ON `users` FOR EACH ROW BEGIN
+		DECLARE idusuario INT DEFAULT 0;
+        DECLARE usuario varchar(100);
+		DECLARE estado varchar(100);
+			 SET idusuario := new.idusuario;/* al id que me viene entrando*/
+			 SET usuario = buscar_Usuario(idusuario);
+             SET estado ='ACTIVO';
+             
+				insert 
+				into bitacoras(
+					
+					usuario,
+					accion,
+					
+					descripcion,
+					modulo
+				)values(
+					
+					usuario,
+					CONCAT(IFNULL(TRIM('INSERTO'), ''),' A LAS: ',  IFNULL(TRIM(now()), '')),
+					CONCAT(IFNULL(TRIM('USUARIO:'), ''),' ',  IFNULL(TRIM(new.usuario),' '),' ESTADO: ',  IFNULL(TRIM(estado), '')),
+					'USARIOS'
+			);
+END
+$$
+DELIMITER ;
+
+--
+-- Índices para tablas volcadas
+--
+
+--
+-- Indices de la tabla `archivos`
+--
+ALTER TABLE `archivos`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `archivos_iddepartamento_foreign` (`iddepartamento`),
+  ADD KEY `archivos_iddocumental_foreign` (`iddocumental`),
+  ADD KEY `archivos_idpersona_foreign` (`idpersona`),
+  ADD KEY `archivos_idcaja_foreign` (`idcaja`),
+  ADD KEY `archivos_idusuario_foreign` (`idusuario`);
+
+--
+-- Indices de la tabla `bitacoras`
+--
+ALTER TABLE `bitacoras`
+  ADD PRIMARY KEY (`idbitacora`);
+
+--
+-- Indices de la tabla `boletas`
+--
+ALTER TABLE `boletas`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `boletas_idusuario_foreign` (`idusuario`),
+  ADD KEY `boletas_iddepartamento_foreign` (`iddepartamento`),
+  ADD KEY `boletas_idpersona_foreign` (`idpersona`);
+
+--
+-- Indices de la tabla `cajas`
+--
+ALTER TABLE `cajas`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `cajas_iddepartamento_foreign` (`iddepartamento`);
+
+--
+-- Indices de la tabla `departamentos`
+--
+ALTER TABLE `departamentos`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `detalle_boletas`
+--
+ALTER TABLE `detalle_boletas`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `detalle_boletas_idboleta_foreign` (`idboleta`),
+  ADD KEY `detalle_boletas_idarchivo_foreign` (`idarchivo`);
+
+--
+-- Indices de la tabla `documentales`
+--
+ALTER TABLE `documentales`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `inventarios`
+--
+ALTER TABLE `inventarios`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `migrations`
+--
+ALTER TABLE `migrations`
+  ADD PRIMARY KEY (`id`);
+
+--
+-- Indices de la tabla `notifications`
+--
+ALTER TABLE `notifications`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `notifications_notifiable_type_notifiable_id_index` (`notifiable_type`,`notifiable_id`);
+
+--
+-- Indices de la tabla `password_resets`
+--
+ALTER TABLE `password_resets`
+  ADD KEY `password_resets_email_index` (`email`);
+
+--
+-- Indices de la tabla `personas`
+--
+ALTER TABLE `personas`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `personas_nombre_unique` (`nombre`),
+  ADD KEY `personas_iddepartamento_foreign` (`iddepartamento`);
+
+--
+-- Indices de la tabla `roles`
+--
+ALTER TABLE `roles`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `roles_nombre_unique` (`nombre`);
+
+--
+-- Indices de la tabla `users`
+--
+ALTER TABLE `users`
+  ADD UNIQUE KEY `users_usuario_unique` (`usuario`),
+  ADD KEY `users_iddepartamento_foreign` (`iddepartamento`),
+  ADD KEY `users_id_foreign` (`id`),
+  ADD KEY `users_idrol_foreign` (`idrol`);
+
+--
+-- AUTO_INCREMENT de las tablas volcadas
+--
+
+--
+-- AUTO_INCREMENT de la tabla `archivos`
+--
+ALTER TABLE `archivos`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+
+--
+-- AUTO_INCREMENT de la tabla `bitacoras`
+--
+ALTER TABLE `bitacoras`
+  MODIFY `idbitacora` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=173;
+
+--
+-- AUTO_INCREMENT de la tabla `boletas`
+--
+ALTER TABLE `boletas`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+
+--
+-- AUTO_INCREMENT de la tabla `cajas`
+--
+ALTER TABLE `cajas`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+
+--
+-- AUTO_INCREMENT de la tabla `departamentos`
+--
+ALTER TABLE `departamentos`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+
+--
+-- AUTO_INCREMENT de la tabla `detalle_boletas`
+--
+ALTER TABLE `detalle_boletas`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT de la tabla `documentales`
+--
+ALTER TABLE `documentales`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
+
+--
+-- AUTO_INCREMENT de la tabla `inventarios`
+--
+ALTER TABLE `inventarios`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+
+--
+-- AUTO_INCREMENT de la tabla `migrations`
+--
+ALTER TABLE `migrations`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+
+--
+-- AUTO_INCREMENT de la tabla `personas`
+--
+ALTER TABLE `personas`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT de la tabla `roles`
+--
+ALTER TABLE `roles`
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- Restricciones para tablas volcadas
+--
+
+--
+-- Filtros para la tabla `archivos`
+--
+ALTER TABLE `archivos`
+  ADD CONSTRAINT `archivos_idcaja_foreign` FOREIGN KEY (`idcaja`) REFERENCES `cajas` (`id`),
+  ADD CONSTRAINT `archivos_iddepartamento_foreign` FOREIGN KEY (`iddepartamento`) REFERENCES `departamentos` (`id`),
+  ADD CONSTRAINT `archivos_iddocumental_foreign` FOREIGN KEY (`iddocumental`) REFERENCES `documentales` (`id`),
+  ADD CONSTRAINT `archivos_idpersona_foreign` FOREIGN KEY (`idpersona`) REFERENCES `personas` (`id`),
+  ADD CONSTRAINT `archivos_idusuario_foreign` FOREIGN KEY (`idusuario`) REFERENCES `users` (`id`);
+
+--
+-- Filtros para la tabla `boletas`
+--
+ALTER TABLE `boletas`
+  ADD CONSTRAINT `boletas_iddepartamento_foreign` FOREIGN KEY (`iddepartamento`) REFERENCES `departamentos` (`id`),
+  ADD CONSTRAINT `boletas_idpersona_foreign` FOREIGN KEY (`idpersona`) REFERENCES `personas` (`id`),
+  ADD CONSTRAINT `boletas_idusuario_foreign` FOREIGN KEY (`idusuario`) REFERENCES `users` (`id`);
+
+--
+-- Filtros para la tabla `cajas`
+--
+ALTER TABLE `cajas`
+  ADD CONSTRAINT `cajas_iddepartamento_foreign` FOREIGN KEY (`iddepartamento`) REFERENCES `departamentos` (`id`);
+
+--
+-- Filtros para la tabla `detalle_boletas`
+--
+ALTER TABLE `detalle_boletas`
+  ADD CONSTRAINT `detalle_boletas_idarchivo_foreign` FOREIGN KEY (`idarchivo`) REFERENCES `archivos` (`id`),
+  ADD CONSTRAINT `detalle_boletas_idboleta_foreign` FOREIGN KEY (`idboleta`) REFERENCES `boletas` (`id`) ON DELETE CASCADE;
+
+--
+-- Filtros para la tabla `personas`
+--
+ALTER TABLE `personas`
+  ADD CONSTRAINT `personas_iddepartamento_foreign` FOREIGN KEY (`iddepartamento`) REFERENCES `departamentos` (`id`);
+
+--
+-- Filtros para la tabla `users`
+--
+ALTER TABLE `users`
+  ADD CONSTRAINT `users_id_foreign` FOREIGN KEY (`id`) REFERENCES `personas` (`id`),
+  ADD CONSTRAINT `users_iddepartamento_foreign` FOREIGN KEY (`iddepartamento`) REFERENCES `departamentos` (`id`),
+  ADD CONSTRAINT `users_idrol_foreign` FOREIGN KEY (`idrol`) REFERENCES `roles` (`id`);
+COMMIT;
+
+/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
